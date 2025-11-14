@@ -28,6 +28,53 @@ nav .container {
   align-items: center;
 }
 
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.auth-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.auth-btn {
+  background: #ff6b35;
+  color: #000;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.auth-btn.logout {
+  background: transparent;
+  color: #ff6b35;
+  border: 1px solid #ff6b35;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.auth-callback {
+  text-align: center;
+  padding: 4rem 0;
+}
+
+.auth-callback h2 {
+  color: #ff6b35;
+  margin-bottom: 1rem;
+}
+
 .brand {
   font-weight: 900;
   font-size: 1.5rem;

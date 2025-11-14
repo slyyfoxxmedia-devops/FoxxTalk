@@ -65,7 +65,10 @@ function Admin() {
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}` // Add auth for AI features
+        },
         body: JSON.stringify({ prompt, currentData: { title, content, category, tags } })
       })
       const data = await response.json()

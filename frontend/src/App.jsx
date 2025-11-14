@@ -9,6 +9,7 @@ import Admin from './pages/Admin'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import Cookies from './pages/Cookies'
+import Callback from './pages/Callback'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/cookies" element={<Cookies />} />
+          <Route path="/callback" element={<Callback />} />
         </Routes>
       </main>
       <Footer />

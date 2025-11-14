@@ -13,7 +13,14 @@
         "8000": "HTTP"
       },
       "environment": {
-        "DATABASE_URL": "postgresql://username:password@database-endpoint:5432/foxxtalk"
+        "DATABASE_URL": "postgresql://username:password@database-endpoint:5432/foxxtalk",
+        "AWS_ACCESS_KEY_ID": "your-aws-access-key",
+        "AWS_SECRET_ACCESS_KEY": "your-aws-secret-key",
+        "CLOUDFRONT_DOMAIN": "your-cloudfront-domain.cloudfront.net",
+        "COGNITO_REGION": "us-east-1",
+        "COGNITO_USER_POOL_ID": "your-user-pool-id",
+        "COGNITO_CLIENT_ID": "your-client-id",
+        "GEMINI_API_KEY": "your-gemini-api-key"
       }
     }
   },

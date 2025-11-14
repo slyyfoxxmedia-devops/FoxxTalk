@@ -13,6 +13,189 @@ function Admin() {
   const [authorImage, setAuthorImage] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [activeSubTab, setActiveSubTab] = useState('')
+  const [landingData, setLandingData] = useState({
+    hero: { title: 'FoxxTalk', subtitle: 'A Blog for Every Conversation', backgroundColor: '#000000', show: true },
+    featuredPosts: { title: 'Featured Posts', count: 3, show: true },
+    sections: []
+  })
+  const [blogSettings, setBlogSettings] = useState({
+    headerTitle: 'FoxxTalk Blog',
+    headerSubtitle: 'Latest insights and updates',
+    backgroundColor: '#000000',
+    postsPerPage: 12,
+    showSearch: true,
+    showCategories: true,
+    categories: 'general,tech,media,creative,business',
+    showPagination: true,
+    paginationStyle: 'numbers'
+  })
+  const [globalSettings, setGlobalSettings] = useState({
+    siteTitle: 'SlyyFoxx Media',
+    siteTagline: '',
+    primaryColor: '#ff6b35',
+    secondaryColor: '#ff8c42',
+    backgroundColor: '#000000',
+    textColor: '#ff6b35',
+    borderColor: '#ff6b35',
+    primaryFont: 'Orbitron',
+    headingFontSize: 2.5,
+    bodyFontSize: 1,
+    fontWeight: '700',
+    containerMaxWidth: 1200,
+    sectionPadding: 4,
+    borderRadius: 8,
+    contactEmail: 'contact@slyyfoxxmedia.com',
+    phoneNumber: '',
+    address: '',
+    socialTwitter: '',
+    socialInstagram: '',
+    socialLinkedIn: '',
+    socialYouTube: '',
+    socialFacebook: '',
+    analyticsId: '',
+    geminiApiKey: '',
+    enableAI: true,
+    enableAnalytics: true,
+    metaDescription: '',
+    metaKeywords: '',
+    siteLanguage: 'en',
+    footerText: '© 2024 SlyyFoxx Media. All rights reserved.',
+    showSocialInFooter: true,
+    customCSS: '',
+    customJS: ''
+  })
+  const [posts, setPosts] = useState([])
+  const [analytics, setAnalytics] = useState({ totalPosts: 0, totalViews: 0, monthlyViews: 0 })
+
+  const handleLandingSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await fetch('/api/landing', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify(landingData)
+      })
+      alert('Landing page saved!')
+    } catch (err) {
+      console.error('Failed to save landing page:', err)
+    }
+  }
+
+  const loadLandingData = async () => {
+    try {
+      const response = await fetch('/api/landing')
+      if (response.ok) {
+        const data = await response.json()
+        setLandingData(data)
+      }
+    } catch (err) {
+      console.error('Failed to load landing data:', err)
+    }
+  }
+
+  const handleBlogSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await fetch('/api/blog-settings', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify(blogSettings)
+      })
+      alert('Blog settings saved!')
+    } catch (err) {
+      console.error('Failed to save blog settings:', err)
+    }
+  }
+
+  const loadBlogSettings = async () => {
+    try {
+      const response = await fetch('/api/blog-settings')
+      if (response.ok) {
+        const data = await response.json()
+        setBlogSettings(data)
+      }
+    } catch (err) {
+      console.error('Failed to load blog settings:', err)
+    }
+  }
+
+  const handleGlobalSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await fetch('/api/global-settings', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify(globalSettings)
+      })
+      alert('Global settings saved!')
+    } catch (err) {
+      console.error('Failed to save global settings:', err)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'forms') {
+      loadLandingData().catch(console.error)
+      loadBlogSettings().catch(console.error)
+    }
+    // Temporarily disabled
+    // if (activeTab === 'manage') {
+    //   loadPosts()
+    // }
+    // if (activeTab === 'analytics') {
+    //   loadAnalytics()
+    // }
+  }, [activeTab])
+
+  const loadPosts = async () => {
+    try {
+      const response = await fetch('/api/posts')
+      if (response.ok) {
+        const data = await response.json()
+        setPosts(data)
+      }
+    } catch (err) {
+      console.error('Failed to load posts:', err)
+    }
+  }
+
+  const loadAnalytics = async () => {
+    try {
+      const response = await fetch('/api/analytics')
+      if (response.ok) {
+        const data = await response.json()
+        setAnalytics(data)
+      }
+    } catch (err) {
+      console.error('Failed to load analytics:', err)
+    }
+  }
+
+  const deletePost = async (postId) => {
+    if (confirm('Are you sure you want to delete this post?')) {
+      try {
+        await fetch(`/api/posts/${postId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        })
+        loadPosts()
+        alert('Post deleted successfully')
+      } catch (err) {
+        console.error('Failed to delete post:', err)
+      }
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -129,48 +312,52 @@ function Admin() {
         <div className="create-post-section">
           <div className="section-header">
             <h2>Create New Post</h2>
-            <div className="ai-actions">
-              <button type="button" className="ai-btn" onClick={() => generateWithAI('generate_ideas')} disabled={isGenerating}>
-                {isGenerating ? 'Generating...' : '🤖 Generate Ideas'}
-              </button>
-              <button type="button" className="ai-btn" onClick={() => generateWithAI('improve_content')} disabled={isGenerating}>
-                🚀 Improve Content
-              </button>
-              <button type="button" className="ai-btn" onClick={() => generateWithAI('complete_post')} disabled={isGenerating}>
-                ✨ Complete Post
-              </button>
-            </div>
           </div>
           <form className="admin-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Post Title</label>
-              <input
-                type="text"
-                placeholder="Enter an engaging title..."
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
+              <div className="field-with-ai">
+                <input
+                  type="text"
+                  placeholder="Enter an engaging title..."
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+                <button type="button" className="field-ai-btn" onClick={() => generateWithAI('generate_title')} disabled={isGenerating}>
+                  🤖
+                </button>
+              </div>
             </div>
             
             <div className="form-group">
               <label>Category</label>
-              <input
-                type="text"
-                placeholder="Enter category (e.g., tech, business, creative)"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              />
+              <div className="field-with-ai">
+                <input
+                  type="text"
+                  placeholder="Enter category (e.g., tech, business, creative)"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                />
+                <button type="button" className="field-ai-btn" onClick={() => generateWithAI('generate_category')} disabled={isGenerating}>
+                  🤖
+                </button>
+              </div>
             </div>
             
             <div className="form-group">
               <label>Tags</label>
-              <input
-                type="text"
-                placeholder="react, javascript, tutorial (comma separated)"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-              />
+              <div className="field-with-ai">
+                <input
+                  type="text"
+                  placeholder="react, javascript, tutorial (comma separated)"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                />
+                <button type="button" className="field-ai-btn" onClick={() => generateWithAI('generate_tags')} disabled={isGenerating}>
+                  🤖
+                </button>
+              </div>
               <small>Separate tags with commas</small>
             </div>
             
@@ -188,13 +375,18 @@ function Admin() {
                   {uploading ? 'Uploading...' : '📁 Upload Image'}
                 </label>
                 <span className="upload-divider">or</span>
-                <input
-                  type="url"
-                  placeholder="Paste image URL"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  className="url-input"
-                />
+                <div className="field-with-ai">
+                  <input
+                    type="url"
+                    placeholder="Paste image URL"
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                    className="url-input"
+                  />
+                  <button type="button" className="field-ai-btn" onClick={() => generateWithAI('generate_image')} disabled={isGenerating}>
+                    🤖
+                  </button>
+                </div>
               </div>
               {image && <img src={image} alt="Preview" className="image-preview" />}
             </div>
@@ -223,13 +415,18 @@ function Admin() {
             
             <div className="form-group">
               <label>Post Content</label>
-              <textarea
-                placeholder="Write your blog post content here..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows="15"
-                required
-              />
+              <div className="field-with-ai">
+                <textarea
+                  placeholder="Write your blog post content here..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  rows="15"
+                  required
+                />
+                <button type="button" className="field-ai-btn textarea-ai-btn" onClick={() => generateWithAI('generate_content')} disabled={isGenerating}>
+                  🤖
+                </button>
+              </div>
             </div>
             
             <div className="form-actions">
@@ -268,15 +465,15 @@ function Admin() {
           <div className="stats-grid">
             <div className="stat-card">
               <h3>Total Posts</h3>
-              <p className="stat-number">3</p>
+              <p className="stat-number">{analytics.totalPosts}</p>
             </div>
             <div className="stat-card">
               <h3>Total Views</h3>
-              <p className="stat-number">1,247</p>
+              <p className="stat-number">{analytics.totalViews.toLocaleString()}</p>
             </div>
             <div className="stat-card">
               <h3>This Month</h3>
-              <p className="stat-number">342</p>
+              <p className="stat-number">{analytics.monthlyViews.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -286,20 +483,32 @@ function Admin() {
         <div className="admin-section">
           <h2>Manage Posts</h2>
           <div className="post-list">
-            <div className="post-item">
-              <span>Welcome to FoxxTalk</span>
-              <div>
-                <button className="edit-btn">Edit</button>
-                <button className="delete-btn">Delete</button>
-              </div>
-            </div>
-            <div className="post-item">
-              <span>The Future of Digital Media</span>
-              <div>
-                <button className="edit-btn">Edit</button>
-                <button className="delete-btn">Delete</button>
-              </div>
-            </div>
+            {posts.length === 0 ? (
+              <p>No posts found. Create your first post!</p>
+            ) : (
+              posts.map(post => (
+                <div key={post.id} className="post-item">
+                  <div>
+                    <span>{post.title}</span>
+                    <small>{post.published ? 'Published' : 'Draft'} - {post.created_at ? new Date(post.created_at).toLocaleDateString() : 'No date'}</small>
+                  </div>
+                  <div>
+                    <button className="edit-btn" onClick={() => {
+                      // Load post data into create form
+                      setTitle(post.title)
+                      setContent(post.content)
+                      setCategory(post.category)
+                      setTags(post.tags)
+                      setImage(post.image)
+                      setAuthor(post.author)
+                      setAuthorImage(post.authorImage)
+                      setActiveTab('create')
+                    }}>Edit</button>
+                    <button className="delete-btn" onClick={() => deletePost(post.id)}>Delete</button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -332,27 +541,64 @@ function Admin() {
           {!activeSubTab && (
             <div className="form-section">
               <h3>Landing Page Editor</h3>
-              <form className="admin-form">
+              <form className="admin-form" onSubmit={handleLandingSubmit}>
                 {/* Hero Section */}
                 <div className="section-editor">
-                  <h4>Hero Section</h4>
+                  <div className="section-header">
+                    <h4>Hero Section</h4>
+                    <div className="section-controls">
+                      <label className="toggle-label">
+                        <input type="checkbox" defaultChecked /> Show
+                      </label>
+                      <button type="button" className="delete-section-btn">×</button>
+                    </div>
+                  </div>
                   <div className="form-group">
                     <label>Hero Title</label>
-                    <input type="text" defaultValue="FoxxTalk" />
+                    <input 
+                      type="text" 
+                      value={landingData.hero.title}
+                      onChange={(e) => setLandingData(prev => ({
+                        ...prev,
+                        hero: { ...prev.hero, title: e.target.value }
+                      }))}
+                    />
                   </div>
                   <div className="form-group">
                     <label>Hero Subtitle</label>
-                    <input type="text" defaultValue="A Blog for Every Conversation" />
+                    <input 
+                      type="text" 
+                      value={landingData.hero.subtitle}
+                      onChange={(e) => setLandingData(prev => ({
+                        ...prev,
+                        hero: { ...prev.hero, subtitle: e.target.value }
+                      }))}
+                    />
                   </div>
                   <div className="form-group">
                     <label>Background Color</label>
-                    <input type="color" defaultValue="#000000" />
+                    <input 
+                      type="color" 
+                      value={landingData.hero.backgroundColor}
+                      onChange={(e) => setLandingData(prev => ({
+                        ...prev,
+                        hero: { ...prev.hero, backgroundColor: e.target.value }
+                      }))}
+                    />
                   </div>
                 </div>
 
                 {/* Featured Posts Section */}
                 <div className="section-editor">
-                  <h4>Featured Posts Section</h4>
+                  <div className="section-header">
+                    <h4>Featured Posts Section</h4>
+                    <div className="section-controls">
+                      <label className="toggle-label">
+                        <input type="checkbox" defaultChecked /> Show
+                      </label>
+                      <button type="button" className="delete-section-btn">×</button>
+                    </div>
+                  </div>
                   <div className="form-group">
                     <label>Section Title</label>
                     <input type="text" defaultValue="Featured Posts" />
@@ -360,10 +606,6 @@ function Admin() {
                   <div className="form-group">
                     <label>Number of Posts</label>
                     <input type="number" defaultValue="3" min="1" max="6" />
-                  </div>
-                  <div className="form-group">
-                    <label>Show Section</label>
-                    <input type="checkbox" defaultChecked />
                   </div>
                 </div>
 
@@ -392,21 +634,33 @@ function Admin() {
           {activeSubTab === 'blog' && (
             <div className="form-section">
               <h3>Blog Page Settings</h3>
-              <form className="admin-form">
+              <form className="admin-form" onSubmit={handleBlogSubmit}>
                 {/* Blog Header Section */}
                 <div className="section-editor">
                   <h4>Blog Header</h4>
                   <div className="form-group">
                     <label>Header Title</label>
-                    <input type="text" defaultValue="FoxxTalk Blog" />
+                    <input 
+                      type="text" 
+                      value={blogSettings.headerTitle}
+                      onChange={(e) => setBlogSettings(prev => ({ ...prev, headerTitle: e.target.value }))}
+                    />
                   </div>
                   <div className="form-group">
                     <label>Header Subtitle</label>
-                    <input type="text" defaultValue="Latest insights and updates" />
+                    <input 
+                      type="text" 
+                      value={blogSettings.headerSubtitle}
+                      onChange={(e) => setBlogSettings(prev => ({ ...prev, headerSubtitle: e.target.value }))}
+                    />
                   </div>
                   <div className="form-group">
                     <label>Header Background Color</label>
-                    <input type="color" defaultValue="#000000" />
+                    <input 
+                      type="color" 
+                      value={blogSettings.backgroundColor}
+                      onChange={(e) => setBlogSettings(prev => ({ ...prev, backgroundColor: e.target.value }))}
+                    />
                   </div>
                 </div>
 
@@ -415,19 +669,37 @@ function Admin() {
                   <h4>Blog Settings</h4>
                   <div className="form-group">
                     <label>Posts Per Page</label>
-                    <input type="number" defaultValue="12" min="1" max="20" />
+                    <input 
+                      type="number" 
+                      value={blogSettings.postsPerPage}
+                      onChange={(e) => setBlogSettings(prev => ({ ...prev, postsPerPage: parseInt(e.target.value) }))}
+                      min="1" max="20" 
+                    />
                   </div>
                   <div className="form-group">
                     <label>Show Search Bar</label>
-                    <input type="checkbox" defaultChecked />
+                    <input 
+                      type="checkbox" 
+                      checked={blogSettings.showSearch}
+                      onChange={(e) => setBlogSettings(prev => ({ ...prev, showSearch: e.target.checked }))}
+                    />
                   </div>
                   <div className="form-group">
                     <label>Show Category Filter</label>
-                    <input type="checkbox" defaultChecked />
+                    <input 
+                      type="checkbox" 
+                      checked={blogSettings.showCategories}
+                      onChange={(e) => setBlogSettings(prev => ({ ...prev, showCategories: e.target.checked }))}
+                    />
                   </div>
                   <div className="form-group">
                     <label>Available Categories</label>
-                    <input type="text" defaultValue="general,tech,media,creative,business" placeholder="Comma separated" />
+                    <input 
+                      type="text" 
+                      value={blogSettings.categories}
+                      onChange={(e) => setBlogSettings(prev => ({ ...prev, categories: e.target.value }))}
+                      placeholder="Comma separated" 
+                    />
                   </div>
                 </div>
 
@@ -456,33 +728,204 @@ function Admin() {
           {activeSubTab === 'global' && (
             <div className="form-section">
               <h3>Global Settings</h3>
-              <form className="admin-form">
-                <div className="form-group">
-                  <label>Site Title</label>
-                  <input type="text" placeholder="SlyyFoxx Media" />
+              <form className="admin-form" onSubmit={handleGlobalSubmit}>
+                {/* Site Identity */}
+                <div className="section-editor">
+                  <h4>Site Identity</h4>
+                  <div className="form-group">
+                    <label>Site Title</label>
+                    <input 
+                      type="text" 
+                      value={globalSettings.siteTitle}
+                      onChange={(e) => setGlobalSettings(prev => ({ ...prev, siteTitle: e.target.value }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Site Tagline</label>
+                    <input 
+                      type="text" 
+                      value={globalSettings.siteTagline}
+                      onChange={(e) => setGlobalSettings(prev => ({ ...prev, siteTagline: e.target.value }))}
+                      placeholder="Your creative media partner" 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Logo</label>
+                    <input type="file" accept="image/*" />
+                  </div>
+                  <div className="form-group">
+                    <label>Favicon</label>
+                    <input type="file" accept="image/x-icon,image/png" />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Primary Color</label>
-                  <input type="color" defaultValue="#ff6b35" />
+
+                {/* Color System */}
+                <div className="section-editor">
+                  <h4>Color System</h4>
+                  <div className="form-group">
+                    <label>Primary Color</label>
+                    <input type="color" defaultValue="#ff6b35" />
+                  </div>
+                  <div className="form-group">
+                    <label>Secondary Color</label>
+                    <input type="color" defaultValue="#ff8c42" />
+                  </div>
+                  <div className="form-group">
+                    <label>Background Color</label>
+                    <input type="color" defaultValue="#000000" />
+                  </div>
+                  <div className="form-group">
+                    <label>Text Color</label>
+                    <input type="color" defaultValue="#ff6b35" />
+                  </div>
+                  <div className="form-group">
+                    <label>Border Color</label>
+                    <input type="color" defaultValue="#ff6b35" />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Logo</label>
-                  <input type="file" accept="image/*" />
+
+                {/* Typography */}
+                <div className="section-editor">
+                  <h4>Typography</h4>
+                  <div className="form-group">
+                    <label>Primary Font</label>
+                    <select defaultValue="Orbitron">
+                      <option value="Orbitron">Orbitron</option>
+                      <option value="Arial">Arial</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Helvetica">Helvetica</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Heading Font Size (rem)</label>
+                    <input type="number" defaultValue="2.5" min="1" max="5" step="0.1" />
+                  </div>
+                  <div className="form-group">
+                    <label>Body Font Size (rem)</label>
+                    <input type="number" defaultValue="1" min="0.8" max="2" step="0.1" />
+                  </div>
+                  <div className="form-group">
+                    <label>Font Weight</label>
+                    <select defaultValue="700">
+                      <option value="300">Light (300)</option>
+                      <option value="400">Normal (400)</option>
+                      <option value="700">Bold (700)</option>
+                      <option value="900">Black (900)</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Contact Email</label>
-                  <input type="email" placeholder="contact@slyyfoxxmedia.com" />
+
+                {/* Layout Options */}
+                <div className="section-editor">
+                  <h4>Layout Options</h4>
+                  <div className="form-group">
+                    <label>Container Max Width (px)</label>
+                    <input type="number" defaultValue="1200" min="800" max="1600" />
+                  </div>
+                  <div className="form-group">
+                    <label>Section Padding (rem)</label>
+                    <input type="number" defaultValue="4" min="1" max="8" step="0.5" />
+                  </div>
+                  <div className="form-group">
+                    <label>Border Radius (px)</label>
+                    <input type="number" defaultValue="8" min="0" max="20" />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Social Media Links</label>
-                  <input type="url" placeholder="Twitter URL" />
-                  <input type="url" placeholder="Instagram URL" />
-                  <input type="url" placeholder="LinkedIn URL" />
+
+                {/* Contact & Social */}
+                <div className="section-editor">
+                  <h4>Contact & Social</h4>
+                  <div className="form-group">
+                    <label>Contact Email</label>
+                    <input type="email" defaultValue="contact@slyyfoxxmedia.com" />
+                  </div>
+                  <div className="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" placeholder="+1 (555) 123-4567" />
+                  </div>
+                  <div className="form-group">
+                    <label>Address</label>
+                    <textarea rows="2" placeholder="123 Main St, City, State 12345"></textarea>
+                  </div>
+                  <div className="form-group">
+                    <label>Social Media Links</label>
+                    <input type="url" placeholder="Twitter URL" />
+                    <input type="url" placeholder="Instagram URL" />
+                    <input type="url" placeholder="LinkedIn URL" />
+                    <input type="url" placeholder="YouTube URL" />
+                    <input type="url" placeholder="Facebook URL" />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Footer Text</label>
-                  <textarea rows="2" placeholder="Footer copyright text"></textarea>
+
+                {/* API Configuration */}
+                <div className="section-editor">
+                  <h4>API Configuration</h4>
+                  <div className="form-group">
+                    <label>Google Analytics Tracking ID</label>
+                    <input type="text" placeholder="G-XXXXXXXXXX" />
+                  </div>
+                  <div className="form-group">
+                    <label>Gemini AI API Key</label>
+                    <input type="password" placeholder="Your Gemini API key" />
+                  </div>
+                  <div className="form-group">
+                    <label>Enable AI Features</label>
+                    <input type="checkbox" defaultChecked />
+                  </div>
+                  <div className="form-group">
+                    <label>Enable Analytics Tracking</label>
+                    <input type="checkbox" defaultChecked />
+                  </div>
                 </div>
+
+                {/* SEO Settings */}
+                <div className="section-editor">
+                  <h4>SEO Settings</h4>
+                  <div className="form-group">
+                    <label>Meta Description</label>
+                    <textarea rows="2" placeholder="Site description for search engines"></textarea>
+                  </div>
+                  <div className="form-group">
+                    <label>Meta Keywords</label>
+                    <input type="text" placeholder="keyword1, keyword2, keyword3" />
+                  </div>
+                  <div className="form-group">
+                    <label>Site Language</label>
+                    <select defaultValue="en">
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="section-editor">
+                  <h4>Footer Settings</h4>
+                  <div className="form-group">
+                    <label>Footer Text</label>
+                    <textarea rows="2" defaultValue="© 2024 SlyyFoxx Media. All rights reserved."></textarea>
+                  </div>
+                  <div className="form-group">
+                    <label>Show Social Links in Footer</label>
+                    <input type="checkbox" defaultChecked />
+                  </div>
+                </div>
+
+                {/* Advanced */}
+                <div className="section-editor">
+                  <h4>Advanced</h4>
+                  <div className="form-group">
+                    <label>Custom CSS</label>
+                    <textarea rows="4" placeholder="/* Custom CSS rules */"></textarea>
+                  </div>
+                  <div className="form-group">
+                    <label>Custom JavaScript</label>
+                    <textarea rows="4" placeholder="// Custom JavaScript code"></textarea>
+                  </div>
+                </div>
+
                 <button type="submit" className="publish-btn">Save Global Settings</button>
               </form>
             </div>
@@ -518,7 +961,7 @@ function Admin() {
                 if (response.ok) {
                   alert('Email changed successfully')
                   // Update stored user data
-                  const userData = JSON.parse(localStorage.getItem('userData'))
+                  const userData = JSON.parse(localStorage.getItem('userData') || '{}')
                   userData.email = newEmail
                   localStorage.setItem('userData', JSON.stringify(userData))
                   window.location.reload()
@@ -527,6 +970,7 @@ function Admin() {
                   alert(data.detail || 'Failed to change email')
                 }
               } catch (err) {
+                console.error('Email change error:', err)
                 alert('Failed to change email')
               }
             }}>
@@ -568,6 +1012,7 @@ function Admin() {
                   alert(data.detail || 'Failed to change password')
                 }
               } catch (err) {
+                console.error('Password change error:', err)
                 alert('Failed to change password')
               }
             }}>

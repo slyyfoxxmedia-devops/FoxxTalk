@@ -47,6 +47,33 @@ class Page(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class LandingPage(Base):
+    __tablename__ = "landing_pages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    data = Column(Text)  # JSON string of landing page data
+    user_id = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class BlogSettings(Base):
+    __tablename__ = "blog_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    data = Column(Text)  # JSON string of blog settings
+    user_id = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class GlobalSettings(Base):
+    __tablename__ = "global_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    data = Column(Text)  # JSON string of global settings
+    user_id = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 def get_db():
     db = SessionLocal()
     try:

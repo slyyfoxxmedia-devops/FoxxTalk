@@ -28,17 +28,28 @@ function Landing() {
     
     // Fetch landing page data
     fetch('/api/landing')
-      .then(res => res.json())
-      .then(data => setLandingData(data))
-      .catch(err => console.log('Using default landing data'))
+      .then(res => {
+        if (res.ok) {
+          return res.json()
+        }
+        throw new Error('Failed to fetch')
+      })
+      .then(data => {
+        if (data && data.hero) {
+          setLandingData(data)
+        }
+      })
+      .catch(err => {
+        console.log('Using default landing data:', err)
+      })
   }, [])
 
   return (
     <div>
       <div className="container">
         <div className="hero">
-          <h1>{landingData.hero.title}</h1>
-          <p>{landingData.hero.subtitle}</p>
+          <h1>{landingData.hero?.title || 'FoxxTalk'}</h1>
+          <p>{landingData.hero?.subtitle || 'A Blog for Every Conversation'}</p>
         </div>
       </div>
       

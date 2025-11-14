@@ -13,7 +13,7 @@ import hashlib
 import secrets
 import boto3
 from datetime import datetime
-from database import get_db, User, Post as DBPost
+from database import get_db, User, Post as DBPost, LandingPage, BlogSettings, GlobalSettings
 
 app = FastAPI(title="FoxxTalk API", version="1.0.0")
 
@@ -125,6 +125,11 @@ class PostResponse(BaseModel):
     created_at: str
     updated_at: str
     user_id: str
+
+class LandingPageData(BaseModel):
+    hero: dict
+    featuredPosts: dict
+    sections: list = []
 
 
 
@@ -290,6 +295,209 @@ async def upload_image(image: UploadFile = File(...), user: dict = Depends(verif
         
     except Exception as e:
         return {"error": str(e)}
+
+# Landing Page API
+@app.get("/api/landing")
+async def get_landing_data(db: Session = Depends(get_db)):
+    landing = db.query(LandingPage).first()
+    if landing:
+        import json
+        return json.loads(landing.data)
+    
+    # Default data if none exists
+    return {
+        "hero": {
+            "title": "FoxxTalk",
+            "subtitle": "A Blog for Every Conversation",
+            "backgroundColor": "#000000",
+            "show": True
+        },
+        "featuredPosts": {
+            "title": "Featured Posts",
+            "count": 3,
+            "show": True
+        },
+        "sections": []
+    }
+
+@app.post("/api/landing")
+async def save_landing_data(data: LandingPageData, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    import json
+    
+    # Check if landing page exists
+    landing = db.query(LandingPage).first()
+    if landing:
+        landing.data = json.dumps(data.dict())
+        landing.updated_at = datetime.utcnow()
+    else:
+        landing = LandingPage(
+            data=json.dumps(data.dict()),
+            user_id=user["id"]
+        )
+        db.add(landing)
+    
+    db.commit()
+    return {"message": "Landing page saved successfully"}
+
+# Global Settings API
+@app.get("/api/global-settings")
+async def get_global_settings(db: Session = Depends(get_db)):
+    settings = db.query(GlobalSettings).first()
+    if settings:
+        import json
+        return json.loads(settings.data)
+    
+    # Default settings
+    return {
+        "siteTitle": "SlyyFoxx Media",
+        "primaryColor": "#ff6b35",
+        "backgroundColor": "#000000"
+    }
+
+@app.post("/api/global-settings")
+async def save_global_settings(settings: dict, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    import json
+    
+    global_settings = db.query(GlobalSettings).first()
+    if global_settings:
+        global_settings.data = json.dumps(settings)
+        global_settings.updated_at = datetime.utcnow()
+    else:
+        global_settings = GlobalSettings(
+            data=json.dumps(settings),
+            user_id=user["id"]
+        )
+        db.add(global_settings)
+    
+    db.commit()
+    return {"message": "Global settings saved successfully"}
+
+# Analytics API
+@app.get("/api/analytics")
+async def get_analytics(db: Session = Depends(get_db)):
+    total_posts = db.query(DBPost).count()
+    # In production, you'd get real analytics data from Google Analytics API
+    return {
+        "totalPosts": total_posts,
+        "totalViews": total_posts * 150,  # Mock data
+        "monthlyViews": total_posts * 50   # Mock data
+    }
+
+# Delete Post API
+@app.delete("/api/posts/{post_id}")
+async def delete_post(post_id: int, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    post = db.query(DBPost).filter(DBPost.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    db.delete(post)
+    db.commit()
+    return {"message": "Post deleted successfully"}
+
+# Blog Settings API
+@app.get("/api/blog-settings")
+async def get_blog_settings(db: Session = Depends(get_db)):
+    settings = db.query(BlogSettings).first()
+    if settings:
+        import json
+        return json.loads(settings.data)
+    
+    # Default settings
+    return {
+        "headerTitle": "FoxxTalk Blog",
+        "headerSubtitle": "Latest insights and updates",
+        "backgroundColor": "#000000",
+        "postsPerPage": 12,
+        "showSearch": True,
+        "showCategories": True,
+        "categories": "general,tech,media,creative,business",
+        "showPagination": True,
+        "paginationStyle": "numbers"
+    }
+
+@app.post("/api/blog-settings")
+async def save_blog_settings(settings: dict, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    import json
+    
+    blog_settings = db.query(BlogSettings).first()
+    if blog_settings:
+        blog_settings.data = json.dumps(settings)
+        blog_settings.updated_at = datetime.utcnow()
+    else:
+        blog_settings = BlogSettings(
+            data=json.dumps(settings),
+            user_id=user["id"]
+        )
+        db.add(blog_settings)
+    
+    db.commit()
+    return {"message": "Blog settings saved successfully"}
+
+# AI Generation API
+@app.post("/api/ai/generate")
+async def generate_with_ai(request: dict, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    # Get Gemini API key from global settings
+    settings = db.query(GlobalSettings).first()
+    if not settings:
+        raise HTTPException(status_code=400, detail="Global settings not configured")
+    
+    import json
+    settings_data = json.loads(settings.data)
+    gemini_api_key = settings_data.get('geminiApiKey')
+    
+    if not gemini_api_key:
+        raise HTTPException(status_code=400, detail="Gemini API key not configured")
+    
+    prompt_type = request.get('prompt')
+    current_data = request.get('currentData', {})
+    
+    try:
+        # Mock response for now - replace with actual Gemini API call
+        if prompt_type == 'generate_ideas':
+            return {
+                "title": "AI-Generated: The Future of Technology",
+                "content": "This is AI-generated content about technology trends...",
+                "tags": "ai, technology, future",
+                "category": "tech"
+            }
+        elif prompt_type == 'improve_content':
+            return {
+                "content": f"Improved version: {current_data.get('content', '')} [Enhanced with AI]"
+            }
+        elif prompt_type == 'complete_post':
+            return {
+                "title": current_data.get('title', 'AI-Enhanced Title'),
+                "content": f"{current_data.get('content', '')}\n\n[AI-generated conclusion and additional content]",
+                "tags": "ai-enhanced, " + current_data.get('tags', ''),
+                "image": "https://picsum.photos/400/200?random=ai"
+            }
+        elif prompt_type == 'generate_image':
+            # Generate image based on post title/content
+            title = current_data.get('title', 'blog post')
+            return {
+                "image": f"https://picsum.photos/400/200?random={hash(title) % 1000}"
+            }
+        elif prompt_type == 'generate_title':
+            return {
+                "title": "AI-Generated: The Future of Digital Innovation"
+            }
+        elif prompt_type == 'generate_category':
+            return {
+                "category": "technology"
+            }
+        elif prompt_type == 'generate_tags':
+            return {
+                "tags": "ai, innovation, digital, future, technology"
+            }
+        elif prompt_type == 'generate_content':
+            return {
+                "content": "Digital innovation is transforming how we work, communicate, and live. From artificial intelligence to blockchain technology, we're witnessing unprecedented changes that will shape the next decade.\n\nKey trends include:\n- AI-powered automation\n- Sustainable technology solutions\n- Enhanced user experiences\n- Data-driven decision making\n\nThese developments present both opportunities and challenges for businesses and individuals alike."
+            }
+        
+        return {"message": "AI generation completed"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
 
 
 

@@ -1,0 +1,32 @@
+{
+  "serviceName": "foxxtalk-app",
+  "containers": {
+    "frontend": {
+      "image": ":frontend.latest",
+      "ports": {
+        "80": "HTTP"
+      }
+    },
+    "backend": {
+      "image": ":backend.latest",
+      "ports": {
+        "8000": "HTTP"
+      },
+      "environment": {
+        "DATABASE_URL": "postgresql://username:password@database-endpoint:5432/foxxtalk"
+      }
+    }
+  },
+  "publicEndpoint": {
+    "containerName": "frontend",
+    "containerPort": 80,
+    "healthCheck": {
+      "healthyThreshold": 2,
+      "unhealthyThreshold": 2,
+      "timeoutSeconds": 5,
+      "intervalSeconds": 30,
+      "path": "/",
+      "successCodes": "200-499"
+    }
+  }
+}

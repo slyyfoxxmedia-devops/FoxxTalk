@@ -32,6 +32,7 @@ function Admin() {
   const [globalSettings, setGlobalSettings] = useState({
     siteTitle: 'SlyyFoxx Media',
     siteTagline: '',
+    logoUrl: '',
     primaryColor: '#ff6b35',
     secondaryColor: '#ff8c42',
     backgroundColor: '#000000',
@@ -236,6 +237,27 @@ function Admin() {
     setUploading(false)
   }
 
+  const handleAuthorImageUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    setUploading(true)
+    const formData = new FormData()
+    formData.append('image', file)
+    
+    try {
+      const response = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData
+      })
+      const data = await response.json()
+      setAuthorImage(data.url)
+    } catch (err) {
+      console.error('Author image upload failed:', err)
+    }
+    setUploading(false)
+  }
+
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
@@ -264,6 +286,36 @@ function Admin() {
       if (data.image) setImage(data.image)
     } catch (err) {
       console.error('AI generation failed:', err)
+    }
+    setIsGenerating(false)
+  }
+
+  const generateAIImage = async (prompt) => {
+    if (!prompt.trim()) {
+      alert('Please enter a description for the image')
+      return
+    }
+    
+    setIsGenerating(true)
+    try {
+      const response = await fetch('/api/ai/generate-image', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({ prompt })
+      })
+      const data = await response.json()
+      
+      if (data.imageUrl) {
+        setImage(data.imageUrl)
+      } else {
+        alert('Failed to generate image')
+      }
+    } catch (err) {
+      console.error('AI image generation failed:', err)
+      alert('Failed to generate image')
     }
     setIsGenerating(false)
   }
@@ -387,6 +439,31 @@ function Admin() {
                     🤖
                   </button>
                 </div>
+                <span className="upload-divider">or</span>
+                <div className="ai-image-section">
+                  <input
+                    type="text"
+                    placeholder="Describe the image you want AI to generate..."
+                    className="ai-prompt-input"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        generateAIImage(e.target.value)
+                      }
+                    }}
+                  />
+                  <button 
+                    type="button" 
+                    className="ai-generate-btn"
+                    onClick={(e) => {
+                      const input = e.target.previousElementSibling
+                      generateAIImage(input.value)
+                    }}
+                    disabled={isGenerating}
+                  >
+                    {isGenerating ? '🔄 Generating...' : '🎨 Generate AI Image'}
+                  </button>
+                </div>
               </div>
               {image && <img src={image} alt="Preview" className="image-preview" />}
             </div>
@@ -404,12 +481,26 @@ function Admin() {
             
             <div className="form-group">
               <label>Author Profile Image</label>
-              <input
-                type="url"
-                placeholder="Paste author image URL"
-                value={authorImage}
-                onChange={(e) => setAuthorImage(e.target.value)}
-              />
+              <div className="author-image-section">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAuthorImageUpload}
+                  className="file-input"
+                  id="author-image-upload"
+                />
+                <label htmlFor="author-image-upload" className="upload-btn">
+                  {uploading ? 'Uploading...' : '📁 Upload Image'}
+                </label>
+                <span className="upload-divider">or</span>
+                <input
+                  type="url"
+                  placeholder="Paste author image URL"
+                  value={authorImage}
+                  onChange={(e) => setAuthorImage(e.target.value)}
+                  className="url-input"
+                />
+              </div>
               {authorImage && <img src={authorImage} alt="Author Preview" className="author-preview" />}
             </div>
             
@@ -751,7 +842,27 @@ function Admin() {
                   </div>
                   <div className="form-group">
                     <label>Logo</label>
-                    <input type="file" accept="image/*" />
+                    <div className="logo-upload-section">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="file-input"
+                        id="logo-upload"
+                      />
+                      <label htmlFor="logo-upload" className="upload-btn">
+                        {uploading ? 'Uploading...' : '📁 Upload Logo'}
+                      </label>
+                      <span className="upload-divider">or</span>
+                      <input
+                        type="url"
+                        placeholder="Paste logo URL"
+                        value={globalSettings.logoUrl || ''}
+                        onChange={(e) => setGlobalSettings(prev => ({ ...prev, logoUrl: e.target.value }))}
+                        className="url-input"
+                      />
+                    </div>
+                    {globalSettings.logoUrl && <img src={globalSettings.logoUrl} alt="Logo Preview" className="logo-preview" />}
                   </div>
                   <div className="form-group">
                     <label>Favicon</label>

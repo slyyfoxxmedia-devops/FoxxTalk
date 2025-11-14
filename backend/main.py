@@ -13,7 +13,7 @@ import hashlib
 import secrets
 import boto3
 from datetime import datetime
-from database import get_db, User, Post as DBPost, LandingPage, BlogSettings, GlobalSettings
+from database import get_db, User, Post as DBPost, Page, LandingPage, BlogSettings, GlobalSettings
 
 app = FastAPI(title="FoxxTalk API", version="1.0.0")
 
@@ -394,6 +394,25 @@ async def delete_post(post_id: int, user: dict = Depends(verify_token), db: Sess
     db.commit()
     return {"message": "Post deleted successfully"}
 
+# Pages API
+@app.get("/api/pages/{slug}")
+async def get_page(slug: str, db: Session = Depends(get_db)):
+    from database import Page
+    page = db.query(Page).filter(Page.slug == slug, Page.published == True).first()
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+    
+    return {
+        "id": page.id,
+        "title": page.title,
+        "slug": page.slug,
+        "content": page.content,
+        "meta_description": page.meta_description,
+        "published": page.published,
+        "created_at": page.created_at.isoformat() + "Z",
+        "updated_at": page.updated_at.isoformat() + "Z"
+    }
+
 # Blog Settings API
 @app.get("/api/blog-settings")
 async def get_blog_settings(db: Session = Depends(get_db)):
@@ -453,31 +472,7 @@ async def generate_with_ai(request: dict, user: dict = Depends(verify_token), db
     
     try:
         # Mock response for now - replace with actual Gemini API call
-        if prompt_type == 'generate_ideas':
-            return {
-                "title": "AI-Generated: The Future of Technology",
-                "content": "This is AI-generated content about technology trends...",
-                "tags": "ai, technology, future",
-                "category": "tech"
-            }
-        elif prompt_type == 'improve_content':
-            return {
-                "content": f"Improved version: {current_data.get('content', '')} [Enhanced with AI]"
-            }
-        elif prompt_type == 'complete_post':
-            return {
-                "title": current_data.get('title', 'AI-Enhanced Title'),
-                "content": f"{current_data.get('content', '')}\n\n[AI-generated conclusion and additional content]",
-                "tags": "ai-enhanced, " + current_data.get('tags', ''),
-                "image": "https://picsum.photos/400/200?random=ai"
-            }
-        elif prompt_type == 'generate_image':
-            # Generate image based on post title/content
-            title = current_data.get('title', 'blog post')
-            return {
-                "image": f"https://picsum.photos/400/200?random={hash(title) % 1000}"
-            }
-        elif prompt_type == 'generate_title':
+        if prompt_type == 'generate_title':
             return {
                 "title": "AI-Generated: The Future of Digital Innovation"
             }
@@ -493,15 +488,48 @@ async def generate_with_ai(request: dict, user: dict = Depends(verify_token), db
             return {
                 "content": "Digital innovation is transforming how we work, communicate, and live. From artificial intelligence to blockchain technology, we're witnessing unprecedented changes that will shape the next decade.\n\nKey trends include:\n- AI-powered automation\n- Sustainable technology solutions\n- Enhanced user experiences\n- Data-driven decision making\n\nThese developments present both opportunities and challenges for businesses and individuals alike."
             }
-        
-        return {"message": "AI generation completed"}
+        elif prompt_type == 'generate_image':
+            # Generate image based on post title/content
+            title = current_data.get('title', 'blog post')
+            return {
+                "image": f"https://picsum.photos/400/200?random={hash(title) % 1000}"
+            }
+        else:
+            return {"message": "AI generation completed"}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
 
-
-
-
+@app.post("/api/ai/generate-image")
+async def generate_ai_image(request: dict, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    # Get Gemini API key from global settings
+    settings = db.query(GlobalSettings).first()
+    if not settings:
+        raise HTTPException(status_code=400, detail="Global settings not configured")
+    
+    import json
+    settings_data = json.loads(settings.data)
+    gemini_api_key = settings_data.get('geminiApiKey')
+    
+    if not gemini_api_key:
+        raise HTTPException(status_code=400, detail="Gemini API key not configured")
+    
+    prompt = request.get('prompt', '')
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Image prompt is required")
+    
+    try:
+        # Mock response for now - replace with actual AI image generation
+        # You can integrate with DALL-E, Midjourney, or Stable Diffusion APIs
+        image_url = f"https://picsum.photos/800/400?random={hash(prompt) % 10000}"
+        
+        return {
+            "imageUrl": image_url,
+            "prompt": prompt
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI image generation failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

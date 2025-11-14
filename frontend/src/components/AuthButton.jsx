@@ -30,6 +30,7 @@ function AuthButton() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',  // Include cookies
         body: JSON.stringify({ email, password })
       })
       
@@ -51,7 +52,17 @@ function AuthButton() {
     setLoading(false)
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      // Call logout endpoint to clear server-side cookie
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+    } catch (err) {
+      console.log('Logout request failed, clearing local storage anyway')
+    }
+    
     localStorage.removeItem('authToken')
     localStorage.removeItem('userData')
     setUser(null)

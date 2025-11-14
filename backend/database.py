@@ -34,6 +34,19 @@ class Post(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class Page(Base):
+    __tablename__ = "pages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    slug = Column(String, unique=True, index=True)
+    content = Column(Text)
+    meta_description = Column(String, default="")
+    published = Column(Boolean, default=True)
+    user_id = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 def get_db():
     db = SessionLocal()
     try:

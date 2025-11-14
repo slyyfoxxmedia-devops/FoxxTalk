@@ -10,6 +10,8 @@ import Admin from './pages/Admin'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import Cookies from './pages/Cookies'
+import DynamicPage from './pages/DynamicPage'
+
 
 function App() {
   return (
@@ -21,14 +23,15 @@ function App() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id" element={<BlogPost />} />
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/cookies" element={<Cookies />} />
+          <Route path="/:slug" element={<DynamicPage />} />
 
         </Routes>
       </main>
       <Footer />
-      <CookieBanner />
     </div>
   )
 }

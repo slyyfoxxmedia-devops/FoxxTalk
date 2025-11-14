@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function Admin() {
   const [activeTab, setActiveTab] = useState('create')
@@ -12,6 +12,7 @@ function Admin() {
   const [author, setAuthor] = useState('')
   const [authorImage, setAuthorImage] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [activeSubTab, setActiveSubTab] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -84,6 +85,8 @@ function Admin() {
     setIsGenerating(false)
   }
 
+
+
   return (
     <div className="container admin-panel">
       <h1>Admin Panel</h1>
@@ -106,6 +109,13 @@ function Admin() {
           onClick={() => setActiveTab('manage')}
         >
           Manage Posts
+        </button>
+
+        <button 
+          className={activeTab === 'forms' ? 'tab active' : 'tab'}
+          onClick={() => setActiveTab('forms')}
+        >
+          Forms
         </button>
         <button 
           className={activeTab === 'settings' ? 'tab active' : 'tab'}
@@ -291,6 +301,192 @@ function Admin() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'forms' && (
+        <div className="admin-section">
+          <h2>Content Forms</h2>
+          
+          <div className="forms-tabs">
+            <button 
+              className={activeTab === 'forms' && !activeSubTab ? 'tab active' : 'tab'}
+              onClick={() => setActiveSubTab('')}
+            >
+              Landing Page
+            </button>
+            <button 
+              className={activeSubTab === 'blog' ? 'tab active' : 'tab'}
+              onClick={() => setActiveSubTab('blog')}
+            >
+              Blog Settings
+            </button>
+            <button 
+              className={activeSubTab === 'global' ? 'tab active' : 'tab'}
+              onClick={() => setActiveSubTab('global')}
+            >
+              Global Settings
+            </button>
+          </div>
+
+          {!activeSubTab && (
+            <div className="form-section">
+              <h3>Landing Page Editor</h3>
+              <form className="admin-form">
+                {/* Hero Section */}
+                <div className="section-editor">
+                  <h4>Hero Section</h4>
+                  <div className="form-group">
+                    <label>Hero Title</label>
+                    <input type="text" defaultValue="FoxxTalk" />
+                  </div>
+                  <div className="form-group">
+                    <label>Hero Subtitle</label>
+                    <input type="text" defaultValue="A Blog for Every Conversation" />
+                  </div>
+                  <div className="form-group">
+                    <label>Background Color</label>
+                    <input type="color" defaultValue="#000000" />
+                  </div>
+                </div>
+
+                {/* Featured Posts Section */}
+                <div className="section-editor">
+                  <h4>Featured Posts Section</h4>
+                  <div className="form-group">
+                    <label>Section Title</label>
+                    <input type="text" defaultValue="Featured Posts" />
+                  </div>
+                  <div className="form-group">
+                    <label>Number of Posts</label>
+                    <input type="number" defaultValue="3" min="1" max="6" />
+                  </div>
+                  <div className="form-group">
+                    <label>Show Section</label>
+                    <input type="checkbox" defaultChecked />
+                  </div>
+                </div>
+
+                {/* Add New Section */}
+                <div className="add-section">
+                  <button type="button" className="draft-btn">+ Add New Section</button>
+                  <select className="section-type">
+                    <option value="text">Text Section</option>
+                    <option value="video">Video Section</option>
+                    <option value="gallery">Image Gallery</option>
+                    <option value="cta">Call to Action</option>
+                    <option value="testimonials">Testimonials</option>
+                    <option value="features">Features Grid</option>
+                    <option value="about">About Section</option>
+                    <option value="contact">Contact Section</option>
+                    <option value="stats">Stats/Numbers</option>
+                    <option value="team">Team Section</option>
+                  </select>
+                </div>
+
+                <button type="submit" className="publish-btn">Save Landing Page</button>
+              </form>
+            </div>
+          )}
+
+          {activeSubTab === 'blog' && (
+            <div className="form-section">
+              <h3>Blog Page Settings</h3>
+              <form className="admin-form">
+                {/* Blog Header Section */}
+                <div className="section-editor">
+                  <h4>Blog Header</h4>
+                  <div className="form-group">
+                    <label>Header Title</label>
+                    <input type="text" defaultValue="FoxxTalk Blog" />
+                  </div>
+                  <div className="form-group">
+                    <label>Header Subtitle</label>
+                    <input type="text" defaultValue="Latest insights and updates" />
+                  </div>
+                  <div className="form-group">
+                    <label>Header Background Color</label>
+                    <input type="color" defaultValue="#000000" />
+                  </div>
+                </div>
+
+                {/* Blog Settings */}
+                <div className="section-editor">
+                  <h4>Blog Settings</h4>
+                  <div className="form-group">
+                    <label>Posts Per Page</label>
+                    <input type="number" defaultValue="12" min="1" max="20" />
+                  </div>
+                  <div className="form-group">
+                    <label>Show Search Bar</label>
+                    <input type="checkbox" defaultChecked />
+                  </div>
+                  <div className="form-group">
+                    <label>Show Category Filter</label>
+                    <input type="checkbox" defaultChecked />
+                  </div>
+                  <div className="form-group">
+                    <label>Available Categories</label>
+                    <input type="text" defaultValue="general,tech,media,creative,business" placeholder="Comma separated" />
+                  </div>
+                </div>
+
+                {/* Pagination Settings */}
+                <div className="section-editor">
+                  <h4>Pagination</h4>
+                  <div className="form-group">
+                    <label>Show Pagination</label>
+                    <input type="checkbox" defaultChecked />
+                  </div>
+                  <div className="form-group">
+                    <label>Pagination Style</label>
+                    <select defaultValue="numbers">
+                      <option value="numbers">Page Numbers</option>
+                      <option value="simple">Previous/Next Only</option>
+                      <option value="load-more">Load More Button</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button type="submit" className="publish-btn">Save Blog Settings</button>
+              </form>
+            </div>
+          )}
+
+          {activeSubTab === 'global' && (
+            <div className="form-section">
+              <h3>Global Settings</h3>
+              <form className="admin-form">
+                <div className="form-group">
+                  <label>Site Title</label>
+                  <input type="text" placeholder="SlyyFoxx Media" />
+                </div>
+                <div className="form-group">
+                  <label>Primary Color</label>
+                  <input type="color" defaultValue="#ff6b35" />
+                </div>
+                <div className="form-group">
+                  <label>Logo</label>
+                  <input type="file" accept="image/*" />
+                </div>
+                <div className="form-group">
+                  <label>Contact Email</label>
+                  <input type="email" placeholder="contact@slyyfoxxmedia.com" />
+                </div>
+                <div className="form-group">
+                  <label>Social Media Links</label>
+                  <input type="url" placeholder="Twitter URL" />
+                  <input type="url" placeholder="Instagram URL" />
+                  <input type="url" placeholder="LinkedIn URL" />
+                </div>
+                <div className="form-group">
+                  <label>Footer Text</label>
+                  <textarea rows="2" placeholder="Footer copyright text"></textarea>
+                </div>
+                <button type="submit" className="publish-btn">Save Global Settings</button>
+              </form>
+            </div>
+          )}
         </div>
       )}
 

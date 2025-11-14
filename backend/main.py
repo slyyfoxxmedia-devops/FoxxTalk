@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Request, Depends, HTTPException
+from fastapi import FastAPI, UploadFile, File, Request, Depends, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -49,7 +49,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://slyyfoxxmedia.com"],
+    allow_origins=["http://localhost:3000", "https://slyyfoxxmedia.com", "https://*.slyyfoxxmedia.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -126,6 +126,8 @@ class PostResponse(BaseModel):
     updated_at: str
     user_id: str
 
+
+
 # Initialize admin user
 def init_admin_user(db: Session):
     admin_user = db.query(User).filter(User.email == ADMIN_EMAIL).first()
@@ -190,7 +192,8 @@ current_password_hash = ADMIN_PASSWORD_HASH
 current_admin_email = ADMIN_EMAIL
 
 @app.post("/api/auth/login")
-async def login(request: LoginRequest, db: Session = Depends(get_db)):
+async def login(request: LoginRequest, response: Response, db: Session = Depends(get_db)):
+    
     # Initialize admin user if not exists
     init_admin_user(db)
     
@@ -200,6 +203,18 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
     if user:
         token = secrets.token_urlsafe(32)
         active_tokens.add(token)
+        
+        # Set cross-subdomain cookie
+        response.set_cookie(
+            key="auth_token",
+            value=token,
+            domain=".slyyfoxxmedia.com",
+            secure=True,
+            httponly=True,
+            samesite="lax",
+            max_age=86400  # 24 hours
+        )
+        
         return {
             "token": token,
             "user": {"id": user.id, "email": user.email}
@@ -227,6 +242,25 @@ async def change_email(request: ChangeEmailRequest, user: dict = Depends(verify_
     db_user.email = request.newEmail
     db.commit()
     return {"message": "Email changed successfully"}
+
+@app.post("/api/auth/logout")
+async def logout(response: Response, credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))):
+    # Clear the cross-subdomain cookie
+    response.set_cookie(
+        key="auth_token",
+        value="",
+        domain=".slyyfoxxmedia.com",
+        expires=0,
+        secure=True,
+        httponly=True,
+        samesite="lax"
+    )
+    
+    # Remove token from active tokens if provided
+    if credentials:
+        active_tokens.discard(credentials.credentials)
+    
+    return {"message": "Logged out successfully"}
 
 @app.post("/api/upload/image")
 async def upload_image(image: UploadFile = File(...), user: dict = Depends(verify_token)):
@@ -256,6 +290,8 @@ async def upload_image(image: UploadFile = File(...), user: dict = Depends(verif
         
     except Exception as e:
         return {"error": str(e)}
+
+
 
 
 

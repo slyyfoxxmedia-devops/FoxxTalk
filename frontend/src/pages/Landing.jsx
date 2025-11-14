@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import CookieBanner from '../components/CookieBanner'
+import SectionRenderer from '../components/SectionRenderer'
 
 function Landing() {
   const [featuredPosts, setFeaturedPosts] = useState([
@@ -7,27 +9,36 @@ function Landing() {
     {id: 2, title: "The Future of Digital Media", content: "Digital media is evolving rapidly. From streaming platforms to interactive content, we're seeing unprecedented changes.", image: "https://picsum.photos/300/200?random=2", author: "SlyyFoxx", authorImage: "https://picsum.photos/40/40?random=101"},
     {id: 3, title: "Building Creative Communities", content: "Community building is at the heart of successful media ventures. Learn how to engage your audience.", image: "https://picsum.photos/300/200?random=3", author: "SlyyFoxx", authorImage: "https://picsum.photos/40/40?random=101"}
   ])
+  const [landingData, setLandingData] = useState({
+    hero: { title: 'FoxxTalk', subtitle: 'A Blog for Every Conversation' },
+    sections: []
+  })
 
   useEffect(() => {
     // Fetch latest posts for featured section
     fetch('/api/posts')
       .then(res => res.json())
       .then(data => {
-        // Show 3 most recent posts as featured
         const featured = data.slice(-3).reverse()
         if (featured.length > 0) {
           setFeaturedPosts(featured)
         }
       })
       .catch(err => console.log('Using mock featured posts'))
+    
+    // Fetch landing page data
+    fetch('/api/landing')
+      .then(res => res.json())
+      .then(data => setLandingData(data))
+      .catch(err => console.log('Using default landing data'))
   }, [])
 
   return (
     <div>
       <div className="container">
         <div className="hero">
-          <h1>FoxxTalk</h1>
-          <p>A Blog for Every Conversation</p>
+          <h1>{landingData.hero.title}</h1>
+          <p>{landingData.hero.subtitle}</p>
         </div>
       </div>
       
@@ -50,6 +61,10 @@ function Landing() {
           </div>
         </div>
       </section>
+      
+      <SectionRenderer sections={landingData.sections} />
+      
+      <CookieBanner />
     </div>
   )
 }

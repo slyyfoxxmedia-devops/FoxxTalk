@@ -5,23 +5,37 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import List, Optional
-import boto3
+from sqlalchemy.orm import Session
 import uuid
 import os
 import time
-import jwt
-from jwt import PyJWKSClient
+import hashlib
+import secrets
+import boto3
+from datetime import datetime
+from database import get_db, User, Post as DBPost
 
 app = FastAPI(title="FoxxTalk API", version="1.0.0")
 
-# Cognito configuration
-COGNITO_REGION = os.getenv('COGNITO_REGION', 'us-east-1')
-COGNITO_USER_POOL_ID = os.getenv('COGNITO_USER_POOL_ID')
-COGNITO_CLIENT_ID = os.getenv('COGNITO_CLIENT_ID')
-COGNITO_JWKS_URL = f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{COGNITO_USER_POOL_ID}/.well-known/jwks.json"
+# Configuration
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@slyyfoxxmedia.com')
+ADMIN_PASSWORD_HASH = os.getenv('ADMIN_PASSWORD_HASH', hashlib.sha256('admin123'.encode()).hexdigest())
+SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+S3_BUCKET = os.getenv('S3_BUCKET', 'foxxtalk-media')
+CLOUDFRONT_DOMAIN = os.getenv('CLOUDFRONT_DOMAIN')
 
 security = HTTPBearer()
-jwks_client = PyJWKSClient(COGNITO_JWKS_URL) if COGNITO_USER_POOL_ID else None
+active_tokens = set()  # In production, use Redis
+
+# S3 client
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name='us-east-1'
+)
 
 # Security middleware
 app.add_middleware(
@@ -58,32 +72,35 @@ async def log_requests(request: Request, call_next):
     print(f"{request.method} {request.url} - {response.status_code} - {process_time:.3f}s")
     return response
 
-# Cognito authentication dependency
-async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if not jwks_client:
-        # Skip auth in development
-        return {"sub": "dev-user", "email": "dev@example.com"}
+# Token authentication
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
+    token = credentials.credentials
+    if token not in active_tokens:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
     
-    try:
-        token = credentials.credentials
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
-        
-        payload = jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["RS256"],
-            audience=COGNITO_CLIENT_ID,
-            issuer=f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{COGNITO_USER_POOL_ID}"
-        )
-        return payload
-    except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    # Get user from database
+    user = db.query(User).filter(User.email == current_admin_email).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return {"id": user.id, "email": user.email}
 
-# Optional auth dependency (for public endpoints that can have auth)
+# Optional auth dependency
 async def optional_auth(credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))):
     if not credentials:
         return None
     return await verify_token(credentials)
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class ChangePasswordRequest(BaseModel):
+    currentPassword: str
+    newPassword: str
+
+class ChangeEmailRequest(BaseModel):
+    newEmail: str
 
 class Post(BaseModel):
     title: str
@@ -93,6 +110,7 @@ class Post(BaseModel):
     image: str = ""
     author: str = ""
     authorImage: str = ""
+    published: bool = True
 
 class PostResponse(BaseModel):
     id: int
@@ -103,46 +121,115 @@ class PostResponse(BaseModel):
     image: str
     author: str
     authorImage: str
+    published: bool
+    created_at: str
+    updated_at: str
+    user_id: str
 
-posts_db = [
-    {"id": 1, "title": "Welcome to FoxxTalk", "content": "This is our first blog post on FoxxTalk. We're excited to share insights about media, technology, and creative content."},
-    {"id": 2, "title": "The Future of Digital Media", "content": "Digital media is evolving rapidly. From streaming platforms to interactive content, we're seeing unprecedented changes in how audiences consume media."},
-    {"id": 3, "title": "Building Creative Communities", "content": "Community building is at the heart of successful media ventures. Learn how to engage your audience and create lasting connections."}
-]
-post_id_counter = 4
+# Initialize admin user
+def init_admin_user(db: Session):
+    admin_user = db.query(User).filter(User.email == ADMIN_EMAIL).first()
+    if not admin_user:
+        admin_user = User(
+            id="admin-001",
+            email=ADMIN_EMAIL,
+            password_hash=ADMIN_PASSWORD_HASH
+        )
+        db.add(admin_user)
+        db.commit()
+    return admin_user
 
 @app.get("/api/posts", response_model=List[PostResponse])
-async def get_posts():
-    return posts_db
+async def get_posts(db: Session = Depends(get_db)):
+    posts = db.query(DBPost).filter(DBPost.published == True).order_by(DBPost.created_at.desc()).all()
+    return [{
+        "id": p.id, "title": p.title, "content": p.content, "category": p.category,
+        "tags": p.tags, "image": p.image, "author": p.author, "authorImage": p.author_image,
+        "published": p.published, "created_at": p.created_at.isoformat() + "Z",
+        "updated_at": p.updated_at.isoformat() + "Z", "user_id": p.user_id
+    } for p in posts]
+
+@app.get("/api/posts/{post_id}", response_model=PostResponse)
+async def get_post(post_id: int, db: Session = Depends(get_db)):
+    post = db.query(DBPost).filter(DBPost.id == post_id, DBPost.published == True).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return {
+        "id": post.id, "title": post.title, "content": post.content, "category": post.category,
+        "tags": post.tags, "image": post.image, "author": post.author, "authorImage": post.author_image,
+        "published": post.published, "created_at": post.created_at.isoformat() + "Z",
+        "updated_at": post.updated_at.isoformat() + "Z", "user_id": post.user_id
+    }
 
 @app.post("/api/posts", response_model=PostResponse)
-async def create_post(post: Post, user: dict = Depends(verify_token)):
-    global post_id_counter
-    new_post = {
-        "id": post_id_counter, 
-        "title": post.title, 
-        "content": post.content,
-        "category": post.category,
-        "tags": post.tags,
-        "image": post.image,
-        "author": post.author,
-        "authorImage": post.authorImage
+async def create_post(post: Post, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    db_post = DBPost(
+        title=post.title,
+        content=post.content,
+        category=post.category,
+        tags=post.tags,
+        image=post.image,
+        author=post.author,
+        author_image=post.authorImage,
+        published=post.published,
+        user_id=user["id"]
+    )
+    db.add(db_post)
+    db.commit()
+    db.refresh(db_post)
+    
+    return {
+        "id": db_post.id, "title": db_post.title, "content": db_post.content, "category": db_post.category,
+        "tags": db_post.tags, "image": db_post.image, "author": db_post.author, "authorImage": db_post.author_image,
+        "published": db_post.published, "created_at": db_post.created_at.isoformat() + "Z",
+        "updated_at": db_post.updated_at.isoformat() + "Z", "user_id": db_post.user_id
     }
-    posts_db.append(new_post)
-    post_id_counter += 1
-    return new_post
+
+# Store current credentials
+current_password_hash = ADMIN_PASSWORD_HASH
+current_admin_email = ADMIN_EMAIL
+
+@app.post("/api/auth/login")
+async def login(request: LoginRequest, db: Session = Depends(get_db)):
+    # Initialize admin user if not exists
+    init_admin_user(db)
+    
+    password_hash = hashlib.sha256(request.password.encode()).hexdigest()
+    user = db.query(User).filter(User.email == request.email, User.password_hash == password_hash).first()
+    
+    if user:
+        token = secrets.token_urlsafe(32)
+        active_tokens.add(token)
+        return {
+            "token": token,
+            "user": {"id": user.id, "email": user.email}
+        }
+    
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@app.post("/api/auth/change-password")
+async def change_password(request: ChangePasswordRequest, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.id == user["id"]).first()
+    
+    current_hash = hashlib.sha256(request.currentPassword.encode()).hexdigest()
+    if current_hash != db_user.password_hash:
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    new_hash = hashlib.sha256(request.newPassword.encode()).hexdigest()
+    db_user.password_hash = new_hash
+    db.commit()
+    
+    return {"message": "Password changed successfully"}
+
+@app.post("/api/auth/change-email")
+async def change_email(request: ChangeEmailRequest, user: dict = Depends(verify_token), db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.id == user["id"]).first()
+    db_user.email = request.newEmail
+    db.commit()
+    return {"message": "Email changed successfully"}
 
 @app.post("/api/upload/image")
 async def upload_image(image: UploadFile = File(...), user: dict = Depends(verify_token)):
-    # Configure AWS S3
-    s3_client = boto3.client(
-        's3',
-        region_name='us-east-1',
-        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
-    )
-    
-    # Generate unique filename
     file_extension = image.filename.split('.')[-1]
     unique_filename = f"blog-images/{uuid.uuid4()}.{file_extension}"
     
@@ -150,42 +237,27 @@ async def upload_image(image: UploadFile = File(...), user: dict = Depends(verif
         # Upload to S3
         s3_client.upload_fileobj(
             image.file,
-            'foxxtalk-media',  # Your S3 bucket name
+            S3_BUCKET,
             unique_filename,
             ExtraArgs={
                 'ACL': 'public-read',
                 'ContentType': image.content_type,
-                'CacheControl': 'max-age=31536000'  # 1 year cache
+                'CacheControl': 'max-age=31536000'
             }
         )
         
-        # Return CloudFront URL (replace with your CloudFront domain)
-        cloudfront_domain = os.getenv('CLOUDFRONT_DOMAIN', 'foxxtalk-media.s3.amazonaws.com')
-        image_url = f"https://{cloudfront_domain}/{unique_filename}"
+        # Return CloudFront URL if available, otherwise S3 URL
+        if CLOUDFRONT_DOMAIN:
+            image_url = f"https://{CLOUDFRONT_DOMAIN}/{unique_filename}"
+        else:
+            image_url = f"https://{S3_BUCKET}.s3.amazonaws.com/{unique_filename}"
+        
         return {"url": image_url}
         
     except Exception as e:
         return {"error": str(e)}
 
-@app.post("/api/auth/callback")
-async def auth_callback(request: dict):
-    # Exchange authorization code for tokens
-    import requests
-    
-    token_url = f"https://{os.getenv('COGNITO_DOMAIN')}/oauth2/token"
-    
-    data = {
-        'grant_type': 'authorization_code',
-        'client_id': COGNITO_CLIENT_ID,
-        'code': request['code'],
-        'redirect_uri': os.getenv('REDIRECT_URI', 'http://localhost:3000/callback')
-    }
-    
-    try:
-        response = requests.post(token_url, data=data)
-        return response.json()
-    except Exception as e:
-        return {"error": str(e)}
+
 
 if __name__ == "__main__":
     import uvicorn

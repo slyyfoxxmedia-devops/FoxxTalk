@@ -19,7 +19,7 @@ function Admin() {
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content, category, tags, image, author, authorImage })
+        body: JSON.stringify({ title, content, category, tags, image, author, authorImage, published: true })
       })
       setTitle('')
       setContent('')
@@ -106,6 +106,12 @@ function Admin() {
           onClick={() => setActiveTab('manage')}
         >
           Manage Posts
+        </button>
+        <button 
+          className={activeTab === 'settings' ? 'tab active' : 'tab'}
+          onClick={() => setActiveTab('settings')}
+        >
+          Settings
         </button>
       </div>
 
@@ -217,7 +223,29 @@ function Admin() {
             </div>
             
             <div className="form-actions">
-              <button type="button" className="draft-btn">Save as Draft</button>
+              <button type="button" className="draft-btn" onClick={async (e) => {
+                e.preventDefault()
+                const form = e.target.closest('form')
+                const formData = new FormData(form)
+                try {
+                  await fetch('/api/posts', {
+                    method: 'POST',
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({ 
+                      title, content, category, tags, image, author, authorImage, 
+                      published: false 
+                    })
+                  })
+                  alert('Draft saved!')
+                  // Reset form
+                  setTitle(''); setContent(''); setImage(''); setTags(''); setCategory(''); setAuthor(''); setAuthorImage('')
+                } catch (err) {
+                  console.error(err)
+                }
+              }}>Save as Draft</button>
               <button type="submit" className="publish-btn">Publish Post</button>
             </div>
           </form>
@@ -262,6 +290,105 @@ function Admin() {
                 <button className="delete-btn">Delete</button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="admin-section">
+          <h2>Settings</h2>
+          <div className="user-info-display">
+            <h3>Account Information</h3>
+            <p><strong>User ID:</strong> {JSON.parse(localStorage.getItem('userData') || '{}').id || 'N/A'}</p>
+            <p><strong>Email:</strong> {JSON.parse(localStorage.getItem('userData') || '{}').email || 'N/A'}</p>
+          </div>
+          <div className="settings-form">
+            <h3>Change Email</h3>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              const formData = new FormData(e.target)
+              const newEmail = formData.get('newEmail')
+              
+              try {
+                const response = await fetch('/api/auth/change-email', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                  },
+                  body: JSON.stringify({ newEmail })
+                })
+                
+                if (response.ok) {
+                  alert('Email changed successfully')
+                  // Update stored user data
+                  const userData = JSON.parse(localStorage.getItem('userData'))
+                  userData.email = newEmail
+                  localStorage.setItem('userData', JSON.stringify(userData))
+                  window.location.reload()
+                } else {
+                  const data = await response.json()
+                  alert(data.detail || 'Failed to change email')
+                }
+              } catch (err) {
+                alert('Failed to change email')
+              }
+            }}>
+              <div className="form-group">
+                <label>New Email</label>
+                <input type="email" name="newEmail" required />
+              </div>
+              <button type="submit" className="publish-btn">Change Email</button>
+            </form>
+            
+            <h3>Change Password</h3>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              const formData = new FormData(e.target)
+              const currentPassword = formData.get('currentPassword')
+              const newPassword = formData.get('newPassword')
+              const confirmPassword = formData.get('confirmPassword')
+              
+              if (newPassword !== confirmPassword) {
+                alert('New passwords do not match')
+                return
+              }
+              
+              try {
+                const response = await fetch('/api/auth/change-password', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                  },
+                  body: JSON.stringify({ currentPassword, newPassword })
+                })
+                
+                if (response.ok) {
+                  alert('Password changed successfully')
+                  e.target.reset()
+                } else {
+                  const data = await response.json()
+                  alert(data.detail || 'Failed to change password')
+                }
+              } catch (err) {
+                alert('Failed to change password')
+              }
+            }}>
+              <div className="form-group">
+                <label>Current Password</label>
+                <input type="password" name="currentPassword" required />
+              </div>
+              <div className="form-group">
+                <label>New Password</label>
+                <input type="password" name="newPassword" required />
+              </div>
+              <div className="form-group">
+                <label>Confirm New Password</label>
+                <input type="password" name="confirmPassword" required />
+              </div>
+              <button type="submit" className="publish-btn">Change Password</button>
+            </form>
           </div>
         </div>
       )}

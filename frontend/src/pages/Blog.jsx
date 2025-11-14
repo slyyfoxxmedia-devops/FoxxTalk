@@ -13,7 +13,7 @@ function Blog() {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
-  const postsPerPage = 3
+  const postsPerPage = 12
   
   // Filter posts based on search and category
   const filteredPosts = posts.filter(post => {
@@ -80,20 +80,18 @@ function Blog() {
           </div>
         </div>
       </div>
-      <div className="blog-grid">
+      <div className="featured-grid">
         {currentPosts.map(post => (
-          <article key={post.id} className="blog-post">
-            <img src={post.image} alt={post.title} className="blog-image" />
-            <h2><Link to={`/blog/${post.id}`}>{post.title}</Link></h2>
-            <p>{post.content.substring(0, 200)}...</p>
-            <div className="post-meta">
-              <div className="author-info">
-                <img src={post.authorImage} alt={post.author} className="author-avatar" />
-                <span className="author-name">{post.author}</span>
-              </div>
-              <Link to={`/blog/${post.id}`} className="read-more">Read Full Post</Link>
+          <div key={post.id} className="featured-post">
+            <img src={post.image} alt={post.title} className="featured-image" />
+            <h3>{post.title}</h3>
+            <p>{post.content.substring(0, 120)}...</p>
+            <div className="featured-author">
+              <img src={post.authorImage} alt={post.author} className="author-avatar" />
+              <span className="author-name">{post.author}</span>
             </div>
-          </article>
+            <Link to={`/blog/${post.id}`} className="read-more">Read More</Link>
+          </div>
         ))}
       </div>
       

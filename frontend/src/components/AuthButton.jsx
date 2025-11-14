@@ -1,40 +1,63 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 function AuthButton() {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  const COGNITO_DOMAIN = process.env.REACT_APP_COGNITO_DOMAIN || 'https://foxxtalk.auth.us-east-1.amazoncognito.com'
-  const CLIENT_ID = process.env.REACT_APP_COGNITO_CLIENT_ID || 'your-client-id'
-  const REDIRECT_URI = process.env.REACT_APP_REDIRECT_URI || 'http://localhost:3000/callback'
+  const [showLogin, setShowLogin] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    // Check if user is logged in
     const token = localStorage.getItem('authToken')
     if (token) {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        setUser({ email: payload.email, name: payload.name })
+        const userData = JSON.parse(localStorage.getItem('userData'))
+        setUser(userData)
       } catch (err) {
         localStorage.removeItem('authToken')
+        localStorage.removeItem('userData')
       }
     }
-    setLoading(false)
   }, [])
 
-  const login = () => {
-    const loginUrl = `${COGNITO_DOMAIN}/login?client_id=${CLIENT_ID}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
-    window.location.href = loginUrl
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        localStorage.setItem('authToken', data.token)
+        localStorage.setItem('userData', JSON.stringify(data.user))
+        setUser(data.user)
+        setShowLogin(false)
+        window.dispatchEvent(new Event('storage')) // Trigger navbar update
+        navigate('/admin')
+      } else {
+        alert(data.message || 'Login failed')
+      }
+    } catch (err) {
+      alert('Login failed. Please try again.')
+    }
+    setLoading(false)
   }
 
   const logout = () => {
     localStorage.removeItem('authToken')
+    localStorage.removeItem('userData')
     setUser(null)
-    const logoutUrl = `${COGNITO_DOMAIN}/logout?client_id=${CLIENT_ID}&logout_uri=${encodeURIComponent(window.location.origin)}`
-    window.location.href = logoutUrl
+    window.dispatchEvent(new Event('storage')) // Trigger navbar update
+    navigate('/')
   }
-
-  if (loading) return <div>Loading...</div>
 
   return (
     <div className="auth-section">
@@ -44,7 +67,38 @@ function AuthButton() {
           <button onClick={logout} className="auth-btn logout">Logout</button>
         </div>
       ) : (
-        <button onClick={login} className="auth-btn login">Login</button>
+        <>
+          <button onClick={() => setShowLogin(true)} className="auth-btn login">Login</button>
+          {showLogin && (
+            <div className="login-modal">
+              <div className="login-form">
+                <h3>Admin Login</h3>
+                <form onSubmit={handleLogin}>
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <div className="form-actions">
+                    <button type="button" onClick={() => setShowLogin(false)}>Cancel</button>
+                    <button type="submit" disabled={loading}>
+                      {loading ? 'Logging in...' : 'Login'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

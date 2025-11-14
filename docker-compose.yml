@@ -13,7 +13,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/foxxtalks
+      - DATABASE_URL=postgresql://user:password@db:5432/foxxtalk
+      - ADMIN_EMAIL=admin@slyyfoxxmedia.com
+      - ADMIN_PASSWORD_HASH=240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9
+      - SECRET_KEY=your-secret-key-change-in-production
+      - AWS_ACCESS_KEY_ID=your-aws-access-key
+      - AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+      - S3_BUCKET=foxxtalk-media
+      - CLOUDFRONT_DOMAIN=your-cloudfront-domain.cloudfront.net
     depends_on:
       - db
 

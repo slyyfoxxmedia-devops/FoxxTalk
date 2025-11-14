@@ -27,3 +27,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# AWS CLI installation files
+aws/
+awscliv2.zip

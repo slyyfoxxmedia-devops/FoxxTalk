@@ -7,8 +7,10 @@ function Admin() {
   const [image, setImage] = useState('')
   const [imageFile, setImageFile] = useState(null)
   const [uploading, setUploading] = useState(false)
-  const [category, setCategory] = useState('general')
+  const [category, setCategory] = useState('')
   const [tags, setTags] = useState('')
+  const [author, setAuthor] = useState('')
+  const [authorImage, setAuthorImage] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -17,13 +19,15 @@ function Admin() {
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content })
+        body: JSON.stringify({ title, content, category, tags, image, author, authorImage })
       })
       setTitle('')
       setContent('')
       setImage('')
       setTags('')
-      setCategory('general')
+      setCategory('')
+      setAuthor('')
+      setAuthorImage('')
       alert('Post created!')
     } catch (err) {
       console.error(err)
@@ -132,13 +136,12 @@ function Admin() {
             
             <div className="form-group">
               <label>Category</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)}>
-                <option value="general">General</option>
-                <option value="tech">Technology</option>
-                <option value="media">Media</option>
-                <option value="creative">Creative</option>
-                <option value="business">Business</option>
-              </select>
+              <input
+                type="text"
+                placeholder="Enter category (e.g., tech, business, creative)"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              />
             </div>
             
             <div className="form-group">
@@ -175,6 +178,28 @@ function Admin() {
                 />
               </div>
               {image && <img src={image} alt="Preview" className="image-preview" />}
+            </div>
+            
+            <div className="form-group">
+              <label>Author Name</label>
+              <input
+                type="text"
+                placeholder="Enter author name"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Author Profile Image</label>
+              <input
+                type="url"
+                placeholder="Paste author image URL"
+                value={authorImage}
+                onChange={(e) => setAuthorImage(e.target.value)}
+              />
+              {authorImage && <img src={authorImage} alt="Author Preview" className="author-preview" />}
             </div>
             
             <div className="form-group">

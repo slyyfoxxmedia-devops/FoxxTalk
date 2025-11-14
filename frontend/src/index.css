@@ -367,6 +367,258 @@ nav a:hover {
   }
 }
 
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 3rem 0;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.page-btn {
+  background: transparent;
+  color: #ff6b35;
+  border: 1px solid #ff6b35;
+  padding: 0.5rem 1rem;
+  font-family: 'Orbitron', monospace;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: rgba(255, 107, 53, 0.1);
+}
+
+.page-btn.active {
+  background: #ff6b35;
+  color: #000;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.blog-filters {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  justify-content: center;
+}
+
+.search-input {
+  padding: 0.75rem;
+  background: #111;
+  border: 1px solid #ff6b35;
+  color: #ff6b35;
+  font-family: 'Orbitron', monospace;
+  border-radius: 4px;
+  width: 300px;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 107, 53, 0.6);
+}
+
+.category-select {
+  padding: 0.75rem;
+  background: #111;
+  border: 1px solid #ff6b35;
+  color: #ff6b35;
+  font-family: 'Orbitron', monospace;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .blog-filters {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .search-input {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+.legal-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 0;
+  line-height: 1.7;
+}
+
+.legal-page h1 {
+  color: #ff6b35;
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.last-updated {
+  opacity: 0.7;
+  margin-bottom: 3rem;
+  font-style: italic;
+}
+
+.legal-page section {
+  margin-bottom: 2rem;
+}
+
+.legal-page h2 {
+  color: #ff6b35;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+}
+
+.legal-page p {
+  margin-bottom: 1rem;
+}
+
+.cookie-banner {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid #ff6b35;
+  border-radius: 8px;
+  padding: 1.5rem;
+  max-width: 350px;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3);
+}
+
+.cookie-content p {
+  color: #ff6b35;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.cookie-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.accept-btn {
+  background: #ff6b35;
+  color: #000;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.decline-btn {
+  background: transparent;
+  color: #ff6b35;
+  border: 1px solid #ff6b35;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.cookie-link {
+  color: #ff6b35;
+  text-decoration: underline;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .cookie-banner {
+    bottom: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .cookie-actions {
+    justify-content: space-between;
+  }
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.author-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #ff6b35;
+}
+
+.author-name {
+  font-size: 0.9rem;
+  color: #ff6b35;
+  font-weight: 700;
+}
+
+.featured-author {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.post-author-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 107, 53, 0.3);
+}
+
+.author-avatar-large {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid #ff6b35;
+}
+
+.author-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.author-name-large {
+  font-size: 1.1rem;
+  color: #ff6b35;
+  font-weight: 700;
+}
+
+.post-date {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.author-preview {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid #ff6b35;
+  margin-top: 0.5rem;
+  object-fit: cover;
+}
+
 .form-group small {
   color: rgba(255, 107, 53, 0.7);
   font-size: 0.8rem;
@@ -555,6 +807,14 @@ footer {
 
 .read-more:hover {
   text-shadow: 0 0 5px #ff6b35;
+}
+
+.featured-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 1rem;
 }
 
 .blog-post-page {
